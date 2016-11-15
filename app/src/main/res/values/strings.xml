@@ -1,0 +1,33 @@
+<resources>
+    <string name="app_name" translatable="false">AppMetrica</string>
+    <string name="login">Log in</string>
+    <string name="install_fragment">Installs</string>
+    <string name="app_activity_applist">Your apps</string>
+    <string name="view">You can\'t edit app</string>
+    <string name="own">You own this app</string>
+    <string name="edit">You can edit app</string>
+    <string name="title_activity_details">DetailsActivity</string>
+    <string name="action_filter">Filter</string>
+    <string name="date_range">Dates range:</string>
+    <string name="legend_night">Night</string>
+    <string name="legend_day">Day</string>
+    <string name="legend_morning">Morning</string>
+    <string name="legend_installs">Installs</string>
+    <string name="legend_others">Others</string>
+    <string name="wait_title">Waiting for YA response</string>
+    <string name="wait_msg">Waiting for data...</string>
+    <string name="select_filter">Select filter mode:</string>
+    <string name="logout_text">Log out</string>
+    <string-array name="filters_array">
+        <item>Just show me installs</item>
+        <item>Sort installs by installation time</item>
+        <item>Sort installs by OS</item>
+        <item>Sort installs by version</item>
+    </string-array>
+    <string-array name="days_array">
+        <item>Show statistics for last 7 days</item>
+        <item>Show statistics for last month</item>
+        <item>Show statistics for last season</item>
+        <item>Show statistics for last year</item>
+    </string-array>
+</resources>

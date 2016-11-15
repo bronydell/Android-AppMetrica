@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="login">Вход</string>
+    <string name="app_activity_applist">Выши приложения</string>
+    <string name="install_fragment">Установки</string>
+    <string name="view">Вы не можете редактировать это приложение</string>
+    <string name="own">Вы владелец этого приложения</string>
+    <string name="edit">Вы можете редактировать это приложение</string>
+    <string name="title_activity_details">Подробности приложения</string>
+    <string name="legend_night">Ночью</string>
+    <string name="legend_day">Днем</string>
+    <string name="legend_morning">Утром</string>
+    <string name="legend_installs">Установки</string>
+    <string name="legend_others">Другое</string>
+    <string name="action_filter">Фильтр</string>
+    <string name="date_range">Диапазон дат:</string>
+    <string name="select_filter">Выберите фильтр:</string>
+    <string-array name="filters_array">
+        <item>Показать все установки</item>
+        <item>Сортировать установки по времени</item>
+        <item>Сортировать установки по ОС</item>
+        <item>Сортировать установки по версии</item>
+    </string-array>
+    <string-array name="days_array">
+        <item>Показать статистику за последние 7 дней</item>
+        <item>Показать статистику за последний месяц</item>
+        <item>Показать статистику за последний квартал</item>
+        <item>Показать статиситику за последний год</item>
+    </string-array>
+    <string name="wait_msg">Создается файл...</string>
+    <string name="wait_title">Ожидание ответа от Яндекса</string>
+    <string name="logout_text">Выйти</string>
+</resources>
