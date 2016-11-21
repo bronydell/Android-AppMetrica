@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -13,23 +14,31 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.androidnetworking.AndroidNetworking;
 import com.androidnetworking.common.Priority;
 import com.androidnetworking.error.ANError;
-import com.androidnetworking.interfaces.StringRequestListener;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import com.androidnetworking.interfaces.JSONObjectRequestListener;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.jacksonandroidnetworking.JacksonParserFactory;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.lang.reflect.Type;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmResults;
 import ru.equestriadev.appmetrica.adapters.AppsAdapter;
 import ru.equestriadev.appmetrica.model.Application;
 
@@ -41,6 +50,8 @@ public class MainActivity extends AppCompatActivity implements ListView.OnItemCl
             "https://oauth.yandex.ru/authorize?response_type=token&client_id=" + appid;
     private static final String baseURl = "https://beta.api-appmetrika.yandex.ru/management/v1/";
 
+    private Realm realm;
+
     private SharedPreferences mPref;
 
     @BindView(R.id.applist)
@@ -49,15 +60,23 @@ public class MainActivity extends AppCompatActivity implements ListView.OnItemCl
     @BindView(R.id.buttonLogin)
     Button logBtn;
 
+    @BindView(R.id.swipe_to_apps)
+    SwipeRefreshLayout swipeRefreshLayout;
+
     private void LogOut() {
         mPref.edit().putString("YAToken", null).commit();
         mAppsList.setAdapter(null);
         makeItDisappear(false);
+
+        realm.beginTransaction();
+        realm.deleteAll();
+        realm.commitTransaction();
     }
 
     public void LogIn(View view) {
         Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(authURL));
         startActivity(browserIntent);
+        swipeRefreshLayout.setRefreshing(false);
         finish();
     }
 
@@ -77,8 +96,14 @@ public class MainActivity extends AppCompatActivity implements ListView.OnItemCl
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         ButterKnife.bind(this);
-
+        Realm.init(getApplicationContext());
+        RealmConfiguration config = new RealmConfiguration.Builder()
+                .deleteRealmIfMigrationNeeded()
+                .build();
+        Realm.setDefaultConfiguration(config);
+        realm = Realm.getDefaultInstance();
         AndroidNetworking.initialize(getApplicationContext());
+        AndroidNetworking.setParserFactory(new JacksonParserFactory());
 
         mPref = getApplicationContext().getSharedPreferences("YASettings", Context.MODE_PRIVATE);
         Intent intent = getIntent();
@@ -88,38 +113,89 @@ public class MainActivity extends AppCompatActivity implements ListView.OnItemCl
             mPref.edit().putString("YAToken", uri.getQueryParameter("access_token")).apply();
         }
 
-        makeItDisappear(mPref.getString("YAToken", null) != null);
+        makeItDisappear(isLogged());
 
+        if(isLogged())
+            getApps();
+        else
+            LogIn(null);
+
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                if(isLogged())
+                    getApps();
+                else
+                    LogIn(null);
+            }
+        });
+
+
+    }
+
+    private boolean isLogged(){
+        return mPref.getString("YAToken", null) != null;
+    }
+
+
+    private void getApps(){
         AndroidNetworking.get(baseURl + "applications.json?oauth_token={oauth_token}")
                 .addPathParameter("oauth_token", mPref.getString("YAToken", ""))
                 //.addPathParameter("oauth_token", "not_the_token")
                 .setPriority(Priority.LOW)
-                .setTag("Applications")
                 .build()
-                .getAsString(new StringRequestListener() {
-                    @Override
-                    public void onResponse(String response) {
-                        try {
-                            JSONObject main = new JSONObject(response);
-                            JSONArray toParse = main.getJSONArray("applications");
-                            Gson gson = new Gson();
-                            Type type = new TypeToken<ArrayList<Application>>() {
-                            }.getType();
-                            ArrayList<Application> apps = gson.fromJson(toParse.toString(), type);
-                            AppsAdapter adapter = new AppsAdapter(apps, getApplicationContext());
-                            mAppsList.setAdapter(adapter);
-                            mAppsList.setOnItemClickListener(MainActivity.this);
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                        }
-                    }
+                .getAsJSONObject(new JSONObjectRequestListener() {
+            @Override
+            public void onResponse(JSONObject response) {
+                // do anything with response
+                JSONArray toParse = null;
+                try {
+                    toParse = response.getJSONArray("applications");
 
-                    @Override
-                    public void onError(ANError anError) {
-                    }
-                });
+                    ObjectMapper mapper = new ObjectMapper();
+                    mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+                    JavaType type = mapper.getTypeFactory().constructCollectionType(ArrayList.class, Application.class);
+                    ArrayList<Application> apps = mapper.readValue(toParse.toString(),
+                            type);
+                    Application demoapp = new Application();
+                    demoapp.setId(1111);
+                    demoapp.setName("Example Application");
+                    demoapp.setPermission("view");
+                    apps.add(demoapp);
+                    realm.beginTransaction();
+                    realm.insertOrUpdate(apps);
+                    realm.commitTransaction();
 
+                    AppsAdapter adapter = new AppsAdapter(apps, getApplicationContext());
+                    mAppsList.setAdapter(adapter);
+                    mAppsList.setOnItemClickListener(MainActivity.this);
+                    swipeRefreshLayout.setRefreshing(false);
+                }
+                catch (JSONException e) {
+                    e.printStackTrace();
+                } catch (JsonParseException e) {
+                    e.printStackTrace();
+                } catch (JsonMappingException e) {
+                    e.printStackTrace();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
 
+            @Override
+            public void onError(ANError error) {
+                // handle error
+                if (error.getErrorCode() == 403) {
+                    LogOut();
+                    Toast.makeText(MainActivity.this, "Something wrong with the key...", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(MainActivity.this, "Turn on the internet", Toast.LENGTH_SHORT).show();
+                    AppsAdapter adapter = new AppsAdapter(getAppsOffline(), getApplicationContext());
+                    mAppsList.setAdapter(adapter);
+                    mAppsList.setOnItemClickListener(MainActivity.this);
+                }
+            }
+        });
     }
 
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -149,5 +225,12 @@ public class MainActivity extends AppCompatActivity implements ListView.OnItemCl
         Intent intent = new Intent(getApplicationContext(), DetailsActivity.class);
         intent.putExtra("appID", app.getId());
         startActivity(intent);
+    }
+
+    public ArrayList<Application> getAppsOffline(){
+        RealmResults<Application> apps = realm.where(Application.class).findAll();
+        ArrayList<Application> apps_array = new ArrayList<>();
+        apps_array.addAll(apps.subList(0, apps.size()));
+        return apps_array;
     }
 }

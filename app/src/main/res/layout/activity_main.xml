@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/activity_main"
+    android:id="@+id/swipe_to_apps"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="ru.equestriadev.appmetrica.MainActivity">
@@ -23,4 +23,4 @@
         android:layout_centerHorizontal="true"
         android:onClick="LogIn"
         android:id="@+id/buttonLogin" />
-</RelativeLayout>
+</android.support.v4.widget.SwipeRefreshLayout>

@@ -1,10 +1,12 @@
 package ru.equestriadev.appmetrica.model;
 
+import io.realm.RealmObject;
+
 /**
  * Created by Bronydell on 11/12/16.
  */
 
-public class Install {
+public class Install extends RealmObject{
 
     private String install_datetime;
     private String app_version_name;

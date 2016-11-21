@@ -3,11 +3,14 @@ package ru.equestriadev.appmetrica.fragments;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -47,6 +50,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
 
+import java.io.File;
 import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -61,9 +65,11 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
+import io.realm.Realm;
 import ru.equestriadev.appmetrica.Arrangement;
-import ru.equestriadev.appmetrica.Networking;
+import ru.equestriadev.appmetrica.InstallsNetworking;
 import ru.equestriadev.appmetrica.R;
+import ru.equestriadev.appmetrica.model.Application;
 import ru.equestriadev.appmetrica.model.Install;
 
 /**
@@ -71,16 +77,18 @@ import ru.equestriadev.appmetrica.model.Install;
  */
 public class InstallsFragment extends Fragment {
 
+    private Realm realm;
+
     private int appID = 0;
     private int mode = 0;
     private int days_range = 30;
     private String filter = "install_datetime,app_version_name,is_reinstallation,publisher_name,os_name";
 
     private String date_since = "2016-06-06 00:00:00";
-    private String date_until = "2016-11-14 00:00:00";
+    private String date_until = "2016-11-21 00:00:00";
 
     private SharedPreferences mPref;
-    private Networking netw;
+    private InstallsNetworking netw;
     private boolean showedDays = false;
     private boolean showedFilter = false;
 
@@ -90,7 +98,6 @@ public class InstallsFragment extends Fragment {
 
     @BindView(R.id.installs_chart)
     LineChart mChart;
-
 
 
 
@@ -113,6 +120,7 @@ public class InstallsFragment extends Fragment {
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        realm = Realm.getDefaultInstance();
         modes = getResources().getStringArray(R.array.filters_array);
         daysmode = getResources().getStringArray(R.array.days_array);
         this.getActivity().setTitle(getString(R.string.install_fragment));
@@ -131,7 +139,10 @@ public class InstallsFragment extends Fragment {
             initFilter();
         else if(showedDays)
             initDays();*/
-        netw = new Networking();
+
+
+
+        netw = new InstallsNetworking();
         mPref = getActivity().getApplicationContext().getSharedPreferences("YASettings", Context.MODE_PRIVATE);
         styleChart();
         makeThisRight();
@@ -149,11 +160,43 @@ public class InstallsFragment extends Fragment {
 
     // Furi
     public void makeThisRight(){
+        Application application = realm.where(Application.class).equalTo("id", appID).findFirst();
+        netw.setApplication(application);
         netw.setAppID(appID);
         netw.setDate_since(date_since);
         netw.setDate_until(date_until);
         netw.setFilter(filter);
         netw.fetchInstalls(getActivity().getApplicationContext(), mChart, getActivity(), mode);
+    }
+
+    public void exportDatabase(Context context) {
+
+        // init realm
+        Realm realm = Realm.getDefaultInstance();
+
+        File exportRealmFile = null;
+        // get or create an "export.realm" file
+        exportRealmFile = new File(context.getExternalCacheDir(), "export.realm");
+
+        // if "export.realm" already exists, delete
+        exportRealmFile.delete();
+
+        // copy current realm to "export.realm"
+        realm.writeCopyTo(exportRealmFile);
+
+        realm.close();
+
+        // init email intent and add export.realm as attachment
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("plain/text");
+        intent.putExtra(Intent.EXTRA_EMAIL, "YOUR MAIL");
+        intent.putExtra(Intent.EXTRA_SUBJECT, "YOUR SUBJECT");
+        intent.putExtra(Intent.EXTRA_TEXT, "YOUR TEXT");
+        Uri u = Uri.fromFile(exportRealmFile);
+        intent.putExtra(Intent.EXTRA_STREAM, u);
+
+        // start email intent
+        context.startActivity(Intent.createChooser(intent, "YOUR CHOOSER TITLE"));
     }
 
     public static InstallsFragment newInstance(int appId) {
@@ -175,6 +218,7 @@ public class InstallsFragment extends Fragment {
 
         Legend l = mChart.getLegend();
         l.setWordWrapEnabled(true);
+
     }
 
     @Override

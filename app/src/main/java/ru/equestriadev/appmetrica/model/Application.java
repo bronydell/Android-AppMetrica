@@ -2,21 +2,31 @@ package ru.equestriadev.appmetrica.model;
 
 import android.content.Context;
 
+import java.util.ArrayList;
+
+import io.realm.RealmList;
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
 import ru.equestriadev.appmetrica.R;
 
 /**
  * Created by Bronydell on 11/12/16.
  */
 
-public class Application {
+public class Application extends RealmObject{
 
+    @PrimaryKey
     private int id;
+
     private String name;
     private String owner_login;
     private String api_key128;
     private String permission;
     private String status;
     private String time_zone_name;
+
+    private RealmList<Install> installs;
+
 
     public int getId() {
         return id;
@@ -83,5 +93,13 @@ public class Application {
 
     public void setTime_zone_name(String time_zone_name) {
         this.time_zone_name = time_zone_name;
+    }
+
+    public RealmList<Install> getInstalls() {
+        return installs;
+    }
+
+    public void setInstalls(RealmList<Install> installs) {
+        this.installs = installs;
     }
 }

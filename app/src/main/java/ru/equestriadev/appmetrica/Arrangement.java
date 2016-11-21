@@ -2,12 +2,17 @@ package ru.equestriadev.appmetrica;
 
 import android.content.Context;
 import android.graphics.Color;
+import android.util.Log;
 
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.IValueFormatter;
 import com.github.mikephil.charting.utils.ViewPortHandler;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -29,18 +34,20 @@ public class Arrangement {
 
     private Context context;
 
-    SimpleDateFormat formatter = new SimpleDateFormat("dd.MM.yy");
+    SimpleDateFormat output_formatter = new SimpleDateFormat("dd.MM.yy");
+    SimpleDateFormat compare_formatter = new SimpleDateFormat("yyyy-MM-dd");
 
-    public LineData getInstalls(ArrayList<Install> installs, ArrayList<String> dates) {
+    public LineData getInstalls(JSONArray installs, ArrayList<String> dates) {
 
         LineData answ = new LineData();
         try {
             HashMap<String, Integer> map = new HashMap<>();
-            for (Install install : installs) {
-                SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = null;
-                date = parser.parse(install.getInstall_datetime());
-                String formattedDate = formatter.format(date);
+            Log.d("DEBUG", "I'm sorry");
+            for(int  i = 0; i < installs.length(); i++) {
+                String formattedDate = null;
+                JSONObject del = installs.getJSONObject(i);
+                formattedDate = del.getString("install_datetime").substring(0, 10);
+                del = null;
                 if (map.containsKey(formattedDate)) {
                     map.put(formattedDate, map.get(formattedDate) + 1);
                 } else {
@@ -48,9 +55,13 @@ public class Arrangement {
                     dates.add(formattedDate);
                 }
             }
-
+            installs = null;
+            System.gc();
+            Log.d("Debug", "Why so slow?");
             int x = 0;
             sortDates(dates);
+
+            Log.d("Debug", "Is this sorted, right?");
             LineDataSet line = null;
             for (int i = 0; i < dates.size(); i++) {
                 String key = dates.get(i);
@@ -62,42 +73,53 @@ public class Arrangement {
                 } else
                     line.addEntry(new Entry(x, map.get(key)));
                 x++;
+            } //wtf?
+
+            for (int i = 0; i < dates.size(); i++) {
+                try {
+                    dates.set(i, output_formatter.format(compare_formatter.parse(dates.get(i))));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
             }
 
-
             answ.addDataSet(line);
-        } catch (ParseException e) {
+
+            Log.d("Debug", "Done?");
+
+        } catch (JSONException e) {
             e.printStackTrace();
         }
 
         return answ;
+
     }
 
-    public LineData byVersion(ArrayList<Install> installs, ArrayList<String> dates) {
+    public LineData byVersion(JSONArray installs, ArrayList<String> dates) {
 
         LineData answ = new LineData();
 
         try {
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
-            for (Install install : installs) {
-                SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = null;
-                date = parser.parse(install.getInstall_datetime());
-                String formattedDate = formatter.format(date);
+            for (int i = 0; i < installs.length(); i++) {
+                String formattedDate = null;
+                JSONObject del = installs.getJSONObject(i);
+                formattedDate = del.getString("install_datetime").substring(0, 10);
                 if (map.containsKey(formattedDate)) {
                     HashMap<String, Integer> version_map = map.get(formattedDate);
-                    if (version_map.containsKey(install.getApp_version_name()))
-                        version_map.put(install.getApp_version_name(), version_map.get(install.getApp_version_name()) + 1);
+                    if (version_map.containsKey(del.getString("app_version_name")))
+                        version_map.put(del.getString("app_version_name"), version_map.get(del.getString("app_version_name")) + 1);
                     else
-                        version_map.put(install.getApp_version_name(), 1);
+                        version_map.put(del.getString("app_version_name"), 1);
                     map.put(formattedDate, version_map);
                 } else {
                     HashMap<String, Integer> version_map = new HashMap<>();
-                    if (!version_map.containsKey(install.getApp_version_name()))
-                        version_map.put(install.getApp_version_name(), 1);
+                    if (!version_map.containsKey(del.getString("app_version_name")))
+                        version_map.put(del.getString("app_version_name"), 1);
                     map.put(formattedDate, version_map);
                     dates.add(formattedDate);
                 }
+                del = null;
             }
 
             int x = 0;
@@ -124,35 +146,45 @@ public class Arrangement {
             for (String os : lines.keySet()) {
                 answ.addDataSet(lines.get(os));
             }
-        } catch (ParseException e) {
+
+            for (int i = 0; i < dates.size(); i++) {
+                try {
+                    dates.set(i, output_formatter.format(compare_formatter.parse(dates.get(i))));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        }
+            catch (JSONException e) {
             e.printStackTrace();
         }
 
         return answ;
     }
 
-    public LineData byOS(ArrayList<Install> installs, ArrayList<String> dates) {
+    public LineData byOS(JSONArray installs, ArrayList<String> dates) {
 
         LineData answ = new LineData();
 
         try {
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
-            for (Install install : installs) {
-                SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = null;
-                date = parser.parse(install.getInstall_datetime());
-                String formattedDate = formatter.format(date);
+            for (int i = 0; i < installs.length(); i++) {
+                String formattedDate = null;
+                JSONObject del = installs.getJSONObject(i);
+                formattedDate = del.getString("install_datetime").substring(0, 10);
+
                 if (map.containsKey(formattedDate)) {
                     HashMap<String, Integer> os_map = map.get(formattedDate);
-                    if (os_map.containsKey(install.getOs_name()))
-                        os_map.put(install.getOs_name(), os_map.get(install.getOs_name()) + 1);
+                    if (os_map.containsKey(del.getString("os_name")))
+                        os_map.put(del.getString("os_name"), os_map.get(del.getString("os_name")) + 1);
                     else
-                        os_map.put(install.getOs_name(), 1);
+                        os_map.put(del.getString("os_name"), 1);
                     map.put(formattedDate, os_map);
                 } else {
                     HashMap<String, Integer> os_map = new HashMap<>();
-                    if (!os_map.containsKey(install.getOs_name()))
-                        os_map.put(install.getOs_name(), 1);
+                    if (!os_map.containsKey(del.getString("os_name")))
+                        os_map.put(del.getString("os_name"), 1);
                     map.put(formattedDate, os_map);
                     dates.add(formattedDate);
                 }
@@ -195,31 +227,41 @@ public class Arrangement {
             for (String os : lines.keySet()) {
                 answ.addDataSet(lines.get(os));
             }
-        } catch (ParseException e) {
+
+            for (int i = 0; i < dates.size(); i++) {
+                try {
+                    dates.set(i, output_formatter.format(compare_formatter.parse(dates.get(i))));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        catch (JSONException e) {
             e.printStackTrace();
         }
 
         return answ;
     }
 
-    public LineData byTime(ArrayList<Install> installs, ArrayList<String> dates) {
+    public LineData byTime(JSONArray installs, ArrayList<String> dates) {
 
         LineData answ = new LineData();
 
         try {
             HashMap<String, HashMap<String, Integer>> map = new HashMap<>();
-            for (Install install : installs) {
-                SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-                Date date = null;
-                date = parser.parse(install.getInstall_datetime());
+            for (int i = 0; i < installs.length(); i++) {
+                String formattedDate = null;
+                int HH = 0;
+                JSONObject del = installs.getJSONObject(i);
+                formattedDate = del.getString("install_datetime").substring(0, 10);
+                HH = Integer.parseInt(del.getString("install_datetime").substring(11, 13));
 
                 String timer = "Morning";
-                if (date.getHours() > 11 && date.getHours() < 18)
+                if (HH > 11 && HH < 18)
                     timer = "Day";
-                else if (date.getHours() > 18 || date.getHours() < 4) {
+                else if (HH > 18 || HH < 4) {
                     timer = "Night";
                 }
-                String formattedDate = formatter.format(date);
                 if (map.containsKey(formattedDate)) {
                     HashMap<String, Integer> time_map = map.get(formattedDate);
                     if (time_map.containsKey(timer))
@@ -280,7 +322,14 @@ public class Arrangement {
             for (String timer : lines.keySet()) {
                 answ.addDataSet(lines.get(timer));
             }
-        } catch (ParseException e) {
+            for (int i = 0; i < dates.size(); i++) {
+                try {
+                    dates.set(i, output_formatter.format(compare_formatter.parse(dates.get(i))));
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        }  catch (JSONException e) {
             e.printStackTrace();
         }
 
@@ -305,7 +354,7 @@ public class Arrangement {
 
     public ArrayList<String> sortDates(ArrayList<String> arr) {
         Collections.sort(arr, new Comparator<String>() {
-            DateFormat f = formatter;
+            DateFormat f = compare_formatter;
 
             @Override
             public int compare(String o1, String o2) {

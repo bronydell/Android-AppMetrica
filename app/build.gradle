@@ -39,7 +39,11 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     apply plugin: 'realm-android'
-    compile 'com.amitshekhar.android:android-networking:0.3.0'
+    compile 'com.amitshekhar.android:jackson-android-networking:0.3.0'
+    compile 'com.fasterxml.jackson.core:jackson-core:2.2.2'
+    compile 'com.fasterxml.jackson.core:jackson-databind:2.2.2'
+    compile 'com.fasterxml.jackson.core:jackson-annotations:2.2.2'
+    compile 'io.reactivex:rxjava:1.1.0'
     compile 'com.android.support:appcompat-v7:24.2.1'
     compile 'com.jakewharton:butterknife:8.4.0'
     compile 'com.android.support:design:24.2.1'
